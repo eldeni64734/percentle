@@ -60,7 +60,7 @@ function getMinimumTopPercentage(letter: string) {
 }
 
 export default function PlayPage() {
-  const [letter, setLetter] = useState('M');
+  const [letter, setLetter] = useState('B');
   const [topList, setTopList] = useState<{ word: string, percent: number }[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
   const [input, setInput] = useState('');
@@ -69,13 +69,34 @@ export default function PlayPage() {
   const [showError, setShowError] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
+  // Load correctGuesses from localStorage on mount or when letter changes
   useEffect(() => {
     const newTopList = getTopCountries(letter);
     const minPercent = getMinimumTopPercentage(letter);
     setTopList(newTopList);
     setMinimumPercentage(minPercent);
-    setCorrectGuesses(new Set()); // Reset guesses when letter changes
+
+    // Load from localStorage
+    const saved = localStorage.getItem(`percentle-${letter}-correctGuesses`);
+    if (saved) {
+      try {
+        const arr = JSON.parse(saved);
+        setCorrectGuesses(new Set(arr));
+      } catch {
+        setCorrectGuesses(new Set());
+      }
+    } else {
+      setCorrectGuesses(new Set());
+    }
   }, [letter]);
+
+  // Save correctGuesses to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(
+      `percentle-${letter}-correctGuesses`,
+      JSON.stringify(Array.from(correctGuesses))
+    );
+  }, [correctGuesses, letter]);
 
   function handleGuess() {
     const guess = input.trim();
