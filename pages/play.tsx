@@ -45,7 +45,7 @@ function getTopCountries(letter: string) {
   })).filter(entry => entry.percent > 0);
 
   const sorted = scored.sort((a, b) => b.percent - a.percent);
-  const minPercent = sorted[Math.min(7, sorted.length - 1)]?.percent || 0;
+  const minPercent = sorted[Math.min(4, sorted.length - 1)]?.percent || 0;
 
   return sorted.filter(entry => entry.percent >= minPercent);
 }
