@@ -69,7 +69,7 @@ function getInitialHintState(topList: { word: string }[], correctGuesses: Set<st
 }
 
 export default function PlayPage() {
-  const [letter, setLetter] = useState<string>('O');
+  const [letter, setLetter] = useState<string>('G');
   const [topList, setTopList] = useState<TopCountry[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
   const [input, setInput] = useState<string>('');
@@ -303,7 +303,6 @@ export default function PlayPage() {
               <span style={{ fontWeight: 500, fontSize: 16 }}>
                 Hard Mode
                 <span style={{ color: '#888', fontSize: 13, fontWeight: 400, marginLeft: 5 }}>
-                  (Max 10 strikes)
                 </span>
               </span>
               <label className="switch">
@@ -391,21 +390,37 @@ export default function PlayPage() {
         justifyContent: 'center',
         gap: 7,
       }}>
-        {Array.from({ length: 10 }).map((_, idx) => (
-          <span
-            key={idx}
-            style={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              color: idx < strikes ? '#ef4444' : '#e5e7eb',
-              transition: 'color 0.18s',
-              userSelect: 'none',
-            }}
-            aria-label={idx < strikes ? "Strike" : "No strike"}
-          >
-            ✖️
-          </span>
-        ))}
+        {Array.from({ length: 10 }).map((_, idx) => {
+          const isActive = idx < strikes;
+          return (
+            <span
+              key={idx}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: 7,
+                background: isActive ? '#fee2e2' : '#f3f4f6',
+                transition: 'background 0.18s, color 0.18s',
+                userSelect: 'none',
+              }}
+              aria-label={isActive ? "Strike" : "No strike"}
+            >
+              <span
+                style={{
+                  fontSize: '2rem',
+                  fontWeight: 'bold',
+                  color: isActive ? '#ef4444' : '#e5e7eb',
+                  transition: 'color 0.18s',
+                }}
+              >
+                ✖️
+              </span>
+            </span>
+          );
+        })}
       </div>
     );
   }
@@ -515,18 +530,6 @@ export default function PlayPage() {
           Submit
         </button>
 
-        {/* --- HINT BUTTON --- */}
-        <button
-          onClick={handleHint}
-          disabled={allGuessed}
-          style={{
-            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#4ade80',
-            color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '0.75rem'
-          }}
-        >
-          {hintButtonLabel}
-        </button>
 
         {/* --- HINT BUTTON --- */}
         <button
