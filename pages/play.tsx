@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const countries = [
-  // Kosovo included
+const countries: string[] = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
   "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
   "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
@@ -33,21 +32,23 @@ const countries = [
   "Zimbabwe"
 ];
 
-function calculatePercent(word: string, letter: string) {
-  const count = word.toUpperCase().split('').filter(c => c === letter.toUpperCase()).length;
+type TopCountry = { word: string; percent: number };
+
+function calculatePercent(word: string, letter: string): number {
+  const count = word.toUpperCase().split('').filter((c: string) => c === letter.toUpperCase()).length;
   return +(100 * count / word.length).toFixed(2);
 }
 
-function getTopCountries(letter: string) {
-  const scored = countries.map(c => ({
+function getTopCountries(letter: string): TopCountry[] {
+  const scored: TopCountry[] = countries.map((c: string) => ({
     word: c,
     percent: calculatePercent(c, letter)
-  })).filter(entry => entry.percent > 0);
+  })).filter((entry: TopCountry) => entry.percent > 0);
 
-  const sorted = scored.sort((a, b) => b.percent - a.percent);
+  const sorted: TopCountry[] = scored.sort((a, b) => b.percent - a.percent);
   const minPercent = sorted[Math.min(4, sorted.length - 1)]?.percent || 0;
 
-  return sorted.filter(entry => entry.percent >= minPercent);
+  return sorted.filter((entry: TopCountry) => entry.percent >= minPercent);
 }
 
 // --- Hint state helpers ---
@@ -68,14 +69,17 @@ function getInitialHintState(topList: { word: string }[], correctGuesses: Set<st
 }
 
 export default function PlayPage() {
-  const [letter, setLetter] = useState('O');
-  const [topList, setTopList] = useState<{ word: string, percent: number }[]>([]);
+  const [letter, setLetter] = useState<string>('O');
+  const [topList, setTopList] = useState<TopCountry[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
-  const [input, setInput] = useState('');
-  const [showWelcome, setShowWelcome] = useState(true);
-  const [showError, setShowError] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [input, setInput] = useState<string>('');
+  const [showWelcome, setShowWelcome] = useState<boolean>(true);
+  const [showError, setShowError] = useState<boolean>(false);
+  const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const [hardMode, setHardMode] = useState<boolean>(false);
+  const [strikes, setStrikes] = useState<number>(0);
 
   // --- Hint state ---
   const [hintState, setHintState] = useState<null | {
@@ -113,6 +117,7 @@ export default function PlayPage() {
     } else {
       setHintState(null);
     }
+    setStrikes(0);
   }, [letter]);
 
   // --- Save guesses to localStorage ---
@@ -144,6 +149,14 @@ export default function PlayPage() {
     }
   }, [correctGuesses, hintState]);
 
+  useEffect(() => {
+    const val = localStorage.getItem("percentle-hardMode");
+    if (val !== null) setHardMode(val === "true");
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("percentle-hardMode", hardMode ? "true" : "false");
+  }, [hardMode]);
+
   function handleGuess() {
     const guess = input.trim();
     if (!guess) return;
@@ -154,6 +167,16 @@ export default function PlayPage() {
 
     if (!properCountryName || !topList.some(entry => entry.word === properCountryName)) {
       triggerErrorFeedback();
+      if (hardMode) {
+        setStrikes(prev => {
+          const next = prev + 1;
+          if (next >= 10) {
+            setShowAll(true);
+            setTimeout(() => setStrikes(0), 2000);
+          }
+          return next;
+        });
+      }
       return;
     }
 
@@ -172,7 +195,7 @@ export default function PlayPage() {
     setTimeout(() => setIsShaking(false), 400);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       handleGuess();
     }
@@ -265,77 +288,151 @@ export default function PlayPage() {
     return null;
   }
 
+  function SettingsModal() {
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>Settings</h2>
+            <button onClick={() => setSettingsOpen(false)} className="close-btn">
+              &times;
+            </button>
+          </div>
+          <div style={{ padding: '10px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0', gap: 8 }}>
+              <span style={{ fontWeight: 500, fontSize: 16 }}>
+                Hard Mode
+                <span style={{ color: '#888', fontSize: 13, fontWeight: 400, marginLeft: 5 }}>
+                  (Max 10 strikes)
+                </span>
+              </span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={hardMode}
+                  onChange={e => { setHardMode(e.target.checked); setStrikes(0); setShowAll(false); }}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+          </div>
+        </div>
+        <style jsx>{`
+          .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.33);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .modal {
+            background: #fff;
+            border-radius: 18px;
+            padding: 1.7rem 1.7rem 1.1rem 1.7rem;
+            min-width: 310px;
+            max-width: 94vw;
+            box-shadow: 0 16px 32px -8px #0001, 0 1.5px 6px #0001;
+            position: relative;
+            font-family: Inter, sans-serif;
+            animation: modalIn 0.22s cubic-bezier(.8,-0.2,.7,1.5);
+          }
+          .close-btn {
+            font-size: 2rem;
+            border: none;
+            background: none;
+            color: #444;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.18s;
+            padding: 0 8px;
+          }
+          .close-btn:hover { color: #e11d48; }
+          .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+          }
+          .switch input { display: none; }
+          .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #d1d5db; border-radius: 13px;
+            transition: .3s;
+          }
+          .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background: #fff;
+            border-radius: 50%; transition: .3s;
+            box-shadow: 0 1px 4px #0002;
+          }
+          input:checked + .slider {
+            background: #34d399;
+          }
+          input:checked + .slider:before {
+            transform: translateX(20px);
+          }
+          @keyframes modalIn {
+            0% { transform: scale(0.9) translateY(30px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  function StrikesBar() {
+    if (!hardMode) return null;
+    return (
+      <div style={{
+        margin: '26px 0 6px 0',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 7,
+      }}>
+        {Array.from({ length: 10 }).map((_, idx) => (
+          <span
+            key={idx}
+            style={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              color: idx < strikes ? '#ef4444' : '#e5e7eb',
+              transition: 'color 0.18s',
+              userSelect: 'none',
+            }}
+            aria-label={idx < strikes ? "Strike" : "No strike"}
+          >
+            ✖️
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   if (showWelcome) {
     return (
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        fontFamily: 'Inter, sans-serif'
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, fontFamily: 'Inter, sans-serif'
       }}>
         <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '2.5rem',
-          maxWidth: '400px',
-          width: '90%',
-          textAlign: 'center',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #e5e7eb'
+          backgroundColor: '#ffffff', borderRadius: '16px', padding: '2.5rem', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', border: '1px solid #e5e7eb'
         }}>
-          <img src="/logo.png" alt="Percentle Logo" style={{
-            width: '120px',
-            height: 'auto',
-            marginBottom: '1.5rem',
-            display: 'block',
-            margin: '0 auto 1.5rem auto'
-          }} />
-          <h1 style={{
-            fontSize: '1.875rem',
-            fontWeight: 'bold',
-            color: '#111827',
-            marginBottom: '1rem'
-          }}>
+          <img src="/logo.png" alt="Percentle Logo" style={{ width: '120px', height: 'auto', marginBottom: '1.5rem', display: 'block', margin: '0 auto 1.5rem auto' }} />
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
             Welcome to Percentle!
           </h1>
-          <p style={{
-            fontSize: '1.1rem',
-            color: '#6b7280',
-            lineHeight: '1.6',
-            marginBottom: '2rem'
-          }}>
+          <p style={{ fontSize: '1.1rem', color: '#6b7280', lineHeight: '1.6', marginBottom: '2rem' }}>
             Guess the countries with the highest % of today's letter.
           </p>
           <button
             onClick={startGame}
             style={{
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.875rem 2rem',
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.2s ease',
-              width: '100%'
+              backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', padding: '0.875rem 2rem', fontSize: '1.125rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s ease', width: '100%'
             }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#059669';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#10b981';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            onMouseOver={e => { e.currentTarget.style.backgroundColor = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseOut={e => { e.currentTarget.style.backgroundColor = '#10b981'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
             Play
           </button>
@@ -346,12 +443,32 @@ export default function PlayPage() {
 
   return (
     <div style={{
-      padding: '2rem',
-      background: '#f9fafb',
-      color: '#111827',
-      fontFamily: 'Inter, sans-serif',
-      minHeight: '100vh'
+      padding: '2rem', background: '#f9fafb', color: '#111827', fontFamily: 'Inter, sans-serif', minHeight: '100vh', position: 'relative'
     }}>
+      <button
+        aria-label="Settings"
+        onClick={() => setSettingsOpen(true)}
+        style={{
+          position: 'fixed',
+          top: 25,
+          right: 34,
+          background: '#fff',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 10,
+          borderRadius: '50%',
+          boxShadow: '0 2px 10px #0001',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          outline: 'none'
+        }}
+      >
+        <img src="/gear.png" alt="Settings" style={{ width: 26, height: 26 }} />
+      </button>
+
+      {settingsOpen && <SettingsModal />}
+
       <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
         <img src="/logo.png" alt="Percentle Logo" style={{ width: '160px', marginBottom: '1rem' }} />
 
@@ -364,21 +481,15 @@ export default function PlayPage() {
 
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Enter your answer..."
           style={{
-            width: '100%',
-            padding: '0.75rem',
-            borderRadius: '10px',
+            width: '100%', padding: '0.75rem', borderRadius: '10px',
             border: showError ? '2px solid #ef4444' : '1px solid #cbd5e1',
-            marginBottom: '1rem',
-            fontSize: '1rem',
-            backgroundColor: '#ffffff',
-            color: '#111827',
-            boxShadow: showError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
-            boxSizing: 'border-box',
-            transform: isShaking ? 'translateX(0)' : 'translateX(0)',
+            marginBottom: '1rem', fontSize: '1rem', backgroundColor: '#ffffff',
+            color: '#111827', boxShadow: showError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
+            boxSizing: 'border-box', transform: isShaking ? 'translateX(0)' : 'translateX(0)',
             animation: isShaking ? 'gentleShake 0.4s ease-in-out' : 'none',
             transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
           }}
@@ -396,19 +507,25 @@ export default function PlayPage() {
         <button
           onClick={handleGuess}
           style={{
-            padding: '0.6rem 1.4rem',
-            borderRadius: '10px',
-            backgroundColor: '#4ade80',
-            color: 'white',
-            border: 'none',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontSize: '1rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            marginRight: '0.75rem'
+            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#4ade80',
+            color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '0.75rem'
           }}
         >
           Submit
+        </button>
+
+        {/* --- HINT BUTTON --- */}
+        <button
+          onClick={handleHint}
+          disabled={allGuessed}
+          style={{
+            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#4ade80',
+            color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '0.75rem'
+          }}
+        >
+          {hintButtonLabel}
         </button>
 
         {/* --- HINT BUTTON --- */}
@@ -433,18 +550,14 @@ export default function PlayPage() {
         <button
           onClick={() => setShowAll(true)}
           style={{
-            padding: '0.6rem 1.4rem',
-            borderRadius: '10px',
-            backgroundColor: '#d1d5db',
-            color: '#111827',
-            border: 'none',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontSize: '1rem'
+            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#d1d5db',
+            color: '#111827', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem'
           }}
         >
           Give Up
         </button>
+
+        <StrikesBar />
 
         <div style={{ marginTop: '2rem', textAlign: 'left' }}>
           {topList.map((entry, idx) => {
