@@ -50,6 +50,23 @@ function getTopCountries(letter: string) {
   return sorted.filter(entry => entry.percent >= minPercent);
 }
 
+// --- Hint state helpers ---
+function getHintStorageKey(letter: string) {
+  return `percentle-${letter}-hintState`;
+}
+
+function getInitialHintState(topList: { word: string }[], correctGuesses: Set<string>) {
+  // Pick a random unguessed country
+  const unguessed = topList.filter(entry => !correctGuesses.has(entry.word));
+  if (unguessed.length === 0) return null;
+  const idx = Math.floor(Math.random() * unguessed.length);
+  return {
+    country: unguessed[idx].word,
+    step: 1,
+    revealedLetters: 0,
+  };
+}
+
 export default function PlayPage() {
   const [letter, setLetter] = useState('O');
   const [topList, setTopList] = useState<{ word: string, percent: number }[]>([]);
@@ -60,10 +77,19 @@ export default function PlayPage() {
   const [isShaking, setIsShaking] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
+  // --- Hint state ---
+  const [hintState, setHintState] = useState<null | {
+    country: string;
+    step: number;
+    revealedLetters: number;
+  }>(null);
+
+  // --- Load state on mount/letter change ---
   useEffect(() => {
     const newTopList = getTopCountries(letter);
     setTopList(newTopList);
 
+    // Load guesses
     const saved = localStorage.getItem(`percentle-${letter}-correctGuesses`);
     if (saved) {
       try {
@@ -75,14 +101,48 @@ export default function PlayPage() {
     } else {
       setCorrectGuesses(new Set());
     }
+
+    // Load hint state
+    const hintSaved = localStorage.getItem(getHintStorageKey(letter));
+    if (hintSaved) {
+      try {
+        setHintState(JSON.parse(hintSaved));
+      } catch {
+        setHintState(null);
+      }
+    } else {
+      setHintState(null);
+    }
   }, [letter]);
 
+  // --- Save guesses to localStorage ---
   useEffect(() => {
     localStorage.setItem(
       `percentle-${letter}-correctGuesses`,
       JSON.stringify(Array.from(correctGuesses))
     );
   }, [correctGuesses, letter]);
+
+  // --- Save hint state to localStorage ---
+  useEffect(() => {
+    if (hintState) {
+      localStorage.setItem(getHintStorageKey(letter), JSON.stringify(hintState));
+    } else {
+      localStorage.removeItem(getHintStorageKey(letter));
+    }
+  }, [hintState, letter]);
+
+  // --- Reset hint if guessed or fully revealed ---
+  useEffect(() => {
+    if (!hintState) return;
+    // If the hinted country is guessed, or all letters revealed, reset on next hint
+    if (
+      correctGuesses.has(hintState.country) ||
+      hintState.revealedLetters >= hintState.country.length
+    ) {
+      setHintState(null);
+    }
+  }, [correctGuesses, hintState]);
 
   function handleGuess() {
     const guess = input.trim();
@@ -120,6 +180,89 @@ export default function PlayPage() {
 
   function startGame() {
     setShowWelcome(false);
+  }
+
+  // --- Handle Hint Button ---
+  function handleHint() {
+    // If all countries are guessed, do nothing
+    if (topList.every(entry => correctGuesses.has(entry.word))) return;
+
+    // If no hintState or the last one was guessed/fully revealed, pick a new country
+    let newHintState = hintState;
+    if (
+      !hintState ||
+      correctGuesses.has(hintState.country) ||
+      hintState.revealedLetters >= hintState.country.length
+    ) {
+      const unguessed = topList.filter(entry => !correctGuesses.has(entry.word));
+      if (unguessed.length === 0) return;
+      const idx = Math.floor(Math.random() * unguessed.length);
+      newHintState = {
+        country: unguessed[idx].word,
+        step: 1,
+        revealedLetters: 0,
+      };
+      setHintState(newHintState);
+      return;
+    }
+
+    // Otherwise, progress the hint
+    if (!newHintState) return; // Defensive: should never happen, but just in case
+
+    if (newHintState.step === 1) {
+      setHintState({ ...newHintState, step: 2 });
+    } else if (newHintState.step >= 2) {
+      const nextLetters = Math.min(
+        newHintState.revealedLetters + 1,
+        newHintState.country.length
+      );
+      setHintState({
+        ...newHintState,
+        step: newHintState.step + 1,
+        revealedLetters: nextLetters,
+      });
+    }
+  }
+
+  // --- Render Hint Button ---
+  const allGuessed = topList.every(entry => correctGuesses.has(entry.word));
+  let hintButtonLabel = "Hint 1";
+  if (hintState) {
+    hintButtonLabel = `Hint ${hintState.step}`;
+  }
+
+  // --- Render hint info for each country ---
+  function getHintDisplay(entry: { word: string, percent: number }) {
+    if (!hintState || hintState.country !== entry.word) return null;
+    if (hintState.step === 1) {
+      // Reveal percent only
+      return (
+        <span style={{ color: '#f59e42', fontWeight: 600, marginLeft: 8 }}>
+          {entry.percent}%
+        </span>
+      );
+    }
+    if (hintState.step >= 2) {
+      // Reveal percent and underscores/letters
+      const revealed = hintState.revealedLetters;
+      const name = entry.word;
+      let display = "";
+      for (let i = 0; i < name.length; ++i) {
+        if (name[i] === " ") {
+          display += "  ";
+        } else if (i < revealed) {
+          display += name[i] + " ";
+        } else {
+          display += "_ ";
+        }
+      }
+      return (
+        <span style={{ color: '#f59e42', fontWeight: 600, marginLeft: 8 }}>
+          {entry.percent}% &nbsp; <span style={{ letterSpacing: 2 }}>{display.trim()}</span>
+        </span>
+      );
+    }
+    return null;
   }
 
   if (showWelcome) {
@@ -268,6 +411,25 @@ export default function PlayPage() {
           Submit
         </button>
 
+        {/* --- HINT BUTTON --- */}
+        <button
+          onClick={handleHint}
+          disabled={allGuessed}
+          style={{
+            padding: '0.6rem 1.4rem',
+            borderRadius: '10px',
+            backgroundColor: allGuessed ? '#e5e7eb' : '#f59e42',
+            color: allGuessed ? '#9ca3af' : '#fff',
+            border: 'none',
+            fontWeight: 600,
+            cursor: allGuessed ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+            marginRight: '0.75rem'
+          }}
+        >
+          {hintButtonLabel}
+        </button>
+
         <button
           onClick={() => setShowAll(true)}
           style={{
@@ -308,7 +470,10 @@ export default function PlayPage() {
                   {isGuessed || showAll ? (
                     <strong>{entry.word}</strong>
                   ) : (
-                    `#${idx + 1} — ???`
+                    <>
+                      {`#${idx + 1} — ???`}
+                      {getHintDisplay(entry)}
+                    </>
                   )}
                 </span>
                 {(isGuessed || showAll) && (
