@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const countries = [
+  // Kosovo included
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
   "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados",
   "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
@@ -12,7 +13,7 @@ const countries = [
   "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala",
   "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India",
   "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica",
-  "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos",
+  "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos",
   "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania",
   "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta",
   "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova",
@@ -42,41 +43,27 @@ function getTopCountries(letter: string) {
     word: c,
     percent: calculatePercent(c, letter)
   })).filter(entry => entry.percent > 0);
-  
-  return scored.sort((a, b) => b.percent - a.percent).slice(0, 8);
-}
 
-function getMinimumTopPercentage(letter: string) {
-  const scored = countries.map(c => ({
-    word: c,
-    percent: calculatePercent(c, letter)
-  })).filter(entry => entry.percent > 0);
-  
   const sorted = scored.sort((a, b) => b.percent - a.percent);
-  
-  // Get the 8th highest percentage (or minimum if less than 8)
-  const minIndex = Math.min(7, sorted.length - 1);
-  return sorted[minIndex]?.percent || 0;
+  const minPercent = sorted[Math.min(7, sorted.length - 1)]?.percent || 0;
+
+  return sorted.filter(entry => entry.percent >= minPercent);
 }
 
 export default function PlayPage() {
-  const [letter, setLetter] = useState('B');
+  const [letter, setLetter] = useState('O');
   const [topList, setTopList] = useState<{ word: string, percent: number }[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
   const [input, setInput] = useState('');
   const [showWelcome, setShowWelcome] = useState(true);
-  const [minimumPercentage, setMinimumPercentage] = useState(0);
   const [showError, setShowError] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
-  // Load correctGuesses from localStorage on mount or when letter changes
   useEffect(() => {
     const newTopList = getTopCountries(letter);
-    const minPercent = getMinimumTopPercentage(letter);
     setTopList(newTopList);
-    setMinimumPercentage(minPercent);
 
-    // Load from localStorage
     const saved = localStorage.getItem(`percentle-${letter}-correctGuesses`);
     if (saved) {
       try {
@@ -90,7 +77,6 @@ export default function PlayPage() {
     }
   }, [letter]);
 
-  // Save correctGuesses to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
       `percentle-${letter}-correctGuesses`,
@@ -102,32 +88,19 @@ export default function PlayPage() {
     const guess = input.trim();
     if (!guess) return;
 
-    // Find the country with proper capitalization
-    const properCountryName = countries.find(country => 
+    const properCountryName = countries.find(country =>
       country.toLowerCase() === guess.toLowerCase()
     );
-    
-    if (!properCountryName) {
-      // Show error feedback for non-existent country
+
+    if (!properCountryName || !topList.some(entry => entry.word === properCountryName)) {
       triggerErrorFeedback();
       return;
     }
 
-    // Calculate the percentage for this guess
-    const guessPercent = calculatePercent(properCountryName, letter);
-    
-    // Check if this country qualifies (has percentage >= minimum and > 0)
-    if (guessPercent >= minimumPercentage && guessPercent > 0) {
-      // Check if we haven't already guessed this country
-      if (!correctGuesses.has(properCountryName)) {
-        setCorrectGuesses(prev => new Set([...prev, properCountryName]));
-      }
-    } else {
-      // Show error feedback for country that doesn't qualify
-      triggerErrorFeedback();
-      return;
+    if (!correctGuesses.has(properCountryName)) {
+      setCorrectGuesses(prev => new Set([...prev, properCountryName]));
     }
-    
+
     setInput('');
   }
 
@@ -135,11 +108,7 @@ export default function PlayPage() {
     setShowError(true);
     setIsShaking(true);
     setInput('');
-    
-    // Hide error styling after 1.5 seconds
     setTimeout(() => setShowError(false), 1500);
-    
-    // Stop shaking after animation completes
     setTimeout(() => setIsShaking(false), 400);
   }
 
@@ -153,7 +122,6 @@ export default function PlayPage() {
     setShowWelcome(false);
   }
 
-  // Welcome popup overlay
   if (showWelcome) {
     return (
       <div style={{
@@ -179,38 +147,29 @@ export default function PlayPage() {
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           border: '1px solid #e5e7eb'
         }}>
-          <img 
-            src="/logo.png" 
-            alt="Percentle Logo" 
-            style={{ 
-              width: '120px', 
-              height: 'auto',
-              marginBottom: '1.5rem',
-              display: 'block',
-              margin: '0 auto 1.5rem auto'
-            }} 
-          />
-          
+          <img src="/logo.png" alt="Percentle Logo" style={{
+            width: '120px',
+            height: 'auto',
+            marginBottom: '1.5rem',
+            display: 'block',
+            margin: '0 auto 1.5rem auto'
+          }} />
           <h1 style={{
             fontSize: '1.875rem',
             fontWeight: 'bold',
             color: '#111827',
-            marginBottom: '1rem',
-            margin: '0 0 1rem 0'
+            marginBottom: '1rem'
           }}>
             Welcome to Percentle!
           </h1>
-          
           <p style={{
             fontSize: '1.1rem',
             color: '#6b7280',
             lineHeight: '1.6',
-            marginBottom: '2rem',
-            margin: '0 0 2rem 0'
+            marginBottom: '2rem'
           }}>
-            Guess the 8 countries with the highest % of today's letter.
+            Guess the countries with the highest % of today's letter.
           </p>
-          
           <button
             onClick={startGame}
             style={{
@@ -281,7 +240,7 @@ export default function PlayPage() {
             transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
           }}
         />
-        
+
         <style jsx>{`
           @keyframes gentleShake {
             0%, 100% { transform: translateX(0); }
@@ -289,6 +248,7 @@ export default function PlayPage() {
             75% { transform: translateX(3px); }
           }
         `}</style>
+
         <br />
         <button
           onClick={handleGuess}
@@ -301,21 +261,38 @@ export default function PlayPage() {
             fontWeight: 600,
             cursor: 'pointer',
             fontSize: '1rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            marginRight: '0.75rem'
           }}
         >
           Submit
         </button>
 
+        <button
+          onClick={() => setShowAll(true)}
+          style={{
+            padding: '0.6rem 1.4rem',
+            borderRadius: '10px',
+            backgroundColor: '#d1d5db',
+            color: '#111827',
+            border: 'none',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          Give Up
+        </button>
+
         <div style={{ marginTop: '2rem', textAlign: 'left' }}>
           {topList.map((entry, idx) => {
             const isGuessed = correctGuesses.has(entry.word);
-            
+
             return (
               <div
                 key={idx}
                 style={{
-                  backgroundColor: isGuessed ? '#bbf7d0' : '#f0fdf4',
+                  backgroundColor: isGuessed || showAll ? '#bbf7d0' : '#f0fdf4',
                   padding: '1rem',
                   borderRadius: '10px',
                   marginBottom: '0.75rem',
@@ -328,42 +305,15 @@ export default function PlayPage() {
                 }}
               >
                 <span>
-                  {isGuessed ? (
+                  {isGuessed || showAll ? (
                     <strong>{entry.word}</strong>
                   ) : (
                     `#${idx + 1} — ???`
                   )}
                 </span>
-                {isGuessed && (
+                {(isGuessed || showAll) && (
                   <span style={{ fontWeight: 600 }}>{entry.percent}%</span>
                 )}
-              </div>
-            );
-          })}
-          
-          {/* Show any additional accepted answers that aren't in the original top 8 */}
-          {Array.from(correctGuesses).filter(country => 
-            !topList.some(topEntry => topEntry.word === country)
-          ).map((country, idx) => {
-            const percent = calculatePercent(country, letter);
-            return (
-              <div
-                key={`extra-${idx}`}
-                style={{
-                  backgroundColor: '#bbf7d0',
-                  padding: '1rem',
-                  borderRadius: '10px',
-                  marginBottom: '0.75rem',
-                  fontWeight: 500,
-                  fontSize: '1rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  border: '1px solid #d1fae5',
-                  alignItems: 'center'
-                }}
-              >
-                <span><strong>{country}</strong></span>
-                <span style={{ fontWeight: 600 }}>{percent}%</span>
               </div>
             );
           })}
