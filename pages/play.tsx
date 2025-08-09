@@ -73,7 +73,6 @@ export default function PlayPage() {
   const [topList, setTopList] = useState<TopCountry[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
   const [input, setInput] = useState<string>('');
-  const [showWelcome, setShowWelcome] = useState<boolean>(true);
   const [showError, setShowError] = useState<boolean>(false);
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [showAll, setShowAll] = useState<boolean>(false);
@@ -199,10 +198,6 @@ export default function PlayPage() {
     if (e.key === 'Enter') {
       handleGuess();
     }
-  }
-
-  function startGame() {
-    setShowWelcome(false);
   }
 
   // --- Handle Hint Button ---
@@ -425,181 +420,158 @@ export default function PlayPage() {
     );
   }
 
-  if (showWelcome) {
-    return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, fontFamily: 'Inter, sans-serif'
-      }}>
-        <div style={{
-          backgroundColor: '#ffffff', borderRadius: '16px', padding: '2.5rem', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', border: '1px solid #e5e7eb'
-        }}>
-          <img src="/logo.png" alt="Percentle Logo" style={{ width: '120px', height: 'auto', marginBottom: '1.5rem', display: 'block', margin: '0 auto 1.5rem auto' }} />
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
-            Welcome to Percentle!
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: '#6b7280', lineHeight: '1.6', marginBottom: '2rem' }}>
-            Guess the countries with the highest % of today's letter.
-          </p>
-          <button
-            onClick={startGame}
-            style={{
-              backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', padding: '0.875rem 2rem', fontSize: '1.125rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s ease', width: '100%'
-            }}
-            onMouseOver={e => { e.currentTarget.style.backgroundColor = '#059669'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseOut={e => { e.currentTarget.style.backgroundColor = '#10b981'; e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            Play
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={{
-      padding: '2rem', background: '#f9fafb', color: '#111827', fontFamily: 'Inter, sans-serif', minHeight: '100vh', position: 'relative'
-    }}>
-      <button
-        aria-label="Settings"
-        onClick={() => setSettingsOpen(true)}
-        style={{
-          position: 'fixed',
-          top: 25,
-          right: 34,
-          background: '#fff',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 10,
-          borderRadius: '50%',
-          boxShadow: '0 2px 10px #0001',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          outline: 'none'
-        }}
-      >
-        <img src="/gear.png" alt="Settings" style={{ width: 26, height: 26 }} />
-      </button>
-
-      {settingsOpen && <SettingsModal />}
-
-      <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
-        <img src="/logo.png" alt="Percentle Logo" style={{ width: '160px', marginBottom: '1rem' }} />
-
-        <p style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>
-          Category: <strong>Countries</strong>
-        </p>
-        <p style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>
-          Today's Letter: <strong>{letter}</strong>
-        </p>
-
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter your answer..."
-          style={{
-            width: '100%', padding: '0.75rem', borderRadius: '10px',
-            border: showError ? '2px solid #ef4444' : '1px solid #cbd5e1',
-            marginBottom: '1rem', fontSize: '1rem', backgroundColor: '#ffffff',
-            color: '#111827', boxShadow: showError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
-            boxSizing: 'border-box', transform: isShaking ? 'translateX(0)' : 'translateX(0)',
-            animation: isShaking ? 'gentleShake 0.4s ease-in-out' : 'none',
-            transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
-          }}
-        />
-
-        <style jsx>{`
-          @keyframes gentleShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-3px); }
-            75% { transform: translateX(3px); }
-          }
-        `}</style>
-
-        <br />
+    <> 
+      <div style={{
+        padding: '2rem', background: '#f9fafb', color: '#111827', fontFamily: 'Inter, sans-serif', minHeight: '100vh', position: 'relative'
+      }}>
         <button
-          onClick={handleGuess}
+          aria-label="Settings"
+          onClick={() => setSettingsOpen(true)}
           style={{
-            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#4ade80',
-            color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '0.75rem'
-          }}
-        >
-          Submit
-        </button>
-
-
-        {/* --- HINT BUTTON --- */}
-        <button
-          onClick={handleHint}
-          disabled={allGuessed}
-          style={{
-            padding: '0.6rem 1.4rem',
-            borderRadius: '10px',
-            backgroundColor: allGuessed ? '#e5e7eb' : '#f59e42',
-            color: allGuessed ? '#9ca3af' : '#fff',
+            position: 'fixed',
+            top: 25,
+            right: 34,
+            background: '#fff',
             border: 'none',
-            fontWeight: 600,
-            cursor: allGuessed ? 'not-allowed' : 'pointer',
-            fontSize: '1rem',
-            marginRight: '0.75rem'
+            cursor: 'pointer',
+            padding: 10,
+            borderRadius: '50%',
+            boxShadow: '0 2px 10px #0001',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            outline: 'none'
           }}
         >
-          {hintButtonLabel}
+          <img src="/gear.png" alt="Settings" style={{ width: 26, height: 26 }} />
         </button>
 
-        <button
-          onClick={() => setShowAll(true)}
-          style={{
-            padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#d1d5db',
-            color: '#111827', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem'
-          }}
-        >
-          Give Up
-        </button>
+        {settingsOpen && <SettingsModal />}
 
-        <StrikesBar />
+        <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
+          <img src="/logo.png" alt="Percentle Logo" style={{ width: '160px', marginBottom: '1rem' }} />
 
-        <div style={{ marginTop: '2rem', textAlign: 'left' }}>
-          {topList.map((entry, idx) => {
-            const isGuessed = correctGuesses.has(entry.word);
+          <p style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+            Category: <strong>Countries</strong>
+          </p>
+          <p style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>
+            Today's Letter: <strong>{letter}</strong>
+          </p>
 
-            return (
-              <div
-                key={idx}
-                style={{
-                  backgroundColor: isGuessed || showAll ? '#bbf7d0' : '#f0fdf4',
-                  padding: '1rem',
-                  borderRadius: '10px',
-                  marginBottom: '0.75rem',
-                  fontWeight: 500,
-                  fontSize: '1rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  border: '1px solid #d1fae5',
-                  alignItems: 'center'
-                }}
-              >
-                <span>
-                  {isGuessed || showAll ? (
-                    <strong>{entry.word}</strong>
-                  ) : (
-                    <>
-                      {`#${idx + 1} — ???`}
-                      {getHintDisplay(entry)}
-                    </>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter your answer..."
+            style={{
+              width: '100%', padding: '0.75rem', borderRadius: '10px',
+              border: showError ? '2px solid #ef4444' : '1px solid #cbd5e1',
+              marginBottom: '1rem', fontSize: '1rem', backgroundColor: '#ffffff',
+              color: '#111827', boxShadow: showError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 1px 3px rgba(0,0,0,0.06)',
+              boxSizing: 'border-box', transform: isShaking ? 'translateX(0)' : 'translateX(0)',
+              animation: isShaking ? 'gentleShake 0.4s ease-in-out' : 'none',
+              transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
+            }}
+          />
+
+          <style jsx>{`
+            @keyframes gentleShake {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-3px); }
+              75% { transform: translateX(3px); }
+            }
+          `}</style>
+
+          <br />
+          <button
+            onClick={handleGuess}
+            style={{
+              padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#4ade80',
+              color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '0.75rem'
+            }}
+          >
+            Submit
+          </button>
+
+
+          {/* --- HINT BUTTON --- */}
+          <button
+            onClick={handleHint}
+            disabled={allGuessed}
+            style={{
+              padding: '0.6rem 1.4rem',
+              borderRadius: '10px',
+              backgroundColor: allGuessed ? '#e5e7eb' : '#f59e42',
+              color: allGuessed ? '#9ca3af' : '#fff',
+              border: 'none',
+              fontWeight: 600,
+              cursor: allGuessed ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              marginRight: '0.75rem'
+            }}
+          >
+            {hintButtonLabel}
+          </button>
+
+          <button
+            onClick={() => setShowAll(true)}
+            style={{
+              padding: '0.6rem 1.4rem', borderRadius: '10px', backgroundColor: '#d1d5db',
+              color: '#111827', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '1rem'
+            }}
+          >
+            Give Up
+          </button>
+
+          <StrikesBar />
+
+          <div style={{ marginTop: '2rem', textAlign: 'left' }}>
+            {topList.map((entry, idx) => {
+              const isGuessed = correctGuesses.has(entry.word);
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    backgroundColor: isGuessed || showAll ? '#bbf7d0' : '#f0fdf4',
+                    padding: '1rem',
+                    borderRadius: '10px',
+                    marginBottom: '0.75rem',
+                    fontWeight: 500,
+                    fontSize: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    border: '1px solid #d1fae5',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span>
+                    {isGuessed || showAll ? (
+                      <strong>{entry.word}</strong>
+                    ) : (
+                      <>
+                        {`#${idx + 1} — ???`}
+                        {getHintDisplay(entry)}
+                      </>
+                    )}
+                  </span>
+                  {(isGuessed || showAll) && (
+                    <span style={{ fontWeight: 600 }}>{entry.percent}%</span>
                   )}
-                </span>
-                {(isGuessed || showAll) && (
-                  <span style={{ fontWeight: 600 }}>{entry.percent}%</span>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
+          <a href="/faq" style={{ color: "#2563eb", textDecoration: "underline", fontSize: "1rem" }}>
+            FAQ
+          </a>
         </div>
       </div>
-    </div>
+    </>
   );
 }
