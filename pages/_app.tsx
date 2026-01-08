@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
+import { Analytics } from "@vercel/analytics/next";
 
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -16,7 +17,12 @@ export default function App({ Component, pageProps }: AppProps) {
       localStorage.setItem("percentle-welcomed", "true");
       router.replace("/welcome");
     }
-  }, [router.pathname]);
+  }, [router]);
 
-  return <Component {...pageProps} />;
+  return (
+    <>
+      <Component {...pageProps} />
+      <Analytics />
+    </>
+  );
 }

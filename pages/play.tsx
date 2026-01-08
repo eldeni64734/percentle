@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const countries: string[] = [
@@ -56,20 +58,8 @@ function getHintStorageKey(letter: string) {
   return `percentle-${letter}-hintState`;
 }
 
-function getInitialHintState(topList: { word: string }[], correctGuesses: Set<string>) {
-  // Pick a random unguessed country
-  const unguessed = topList.filter(entry => !correctGuesses.has(entry.word));
-  if (unguessed.length === 0) return null;
-  const idx = Math.floor(Math.random() * unguessed.length);
-  return {
-    country: unguessed[idx].word,
-    step: 1,
-    revealedLetters: 0,
-  };
-}
-
 export default function PlayPage() {
-  const [letter, setLetter] = useState<string>('G');
+  const [letter] = useState<string>('G');
   const [topList, setTopList] = useState<TopCountry[]>([]);
   const [correctGuesses, setCorrectGuesses] = useState<Set<string>>(new Set());
   const [input, setInput] = useState<string>('');
@@ -444,19 +434,26 @@ export default function PlayPage() {
             outline: 'none'
           }}
         >
-          <img src="/gear.png" alt="Settings" style={{ width: 26, height: 26 }} />
+          <Image src="/gear.png" alt="Settings" width={26} height={26} />
         </button>
 
         {settingsOpen && <SettingsModal />}
 
         <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
-          <img src="/logo.png" alt="Percentle Logo" style={{ width: '160px', marginBottom: '1rem' }} />
+          <Image
+            src="/logo.png"
+            alt="Percentle Logo"
+            width={180}
+            height={38}
+            style={{ marginBottom: '1rem', height: 'auto' }}
+            priority
+          />
 
           <p style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>
             Category: <strong>Countries</strong>
           </p>
           <p style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>
-            Today's Letter: <strong>{letter}</strong>
+            Today&apos;s Letter: <strong>{letter}</strong>
           </p>
 
           <input
@@ -567,9 +564,9 @@ export default function PlayPage() {
         </div>
 
         <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
-          <a href="/faq" style={{ color: "#2563eb", textDecoration: "underline", fontSize: "1rem" }}>
+          <Link href="/faq" style={{ color: "#2563eb", textDecoration: "underline", fontSize: "1rem" }}>
             FAQ
-          </a>
+          </Link>
         </div>
       </div>
     </>
